@@ -1,0 +1,21 @@
+{
+    "compilerOptions": {
+        "module": "CommonJS",
+        "target": "ESNext",
+
+        "rootDir": "src",
+        "outDir": "build",
+        "baseUrl": "src",
+        "paths": {
+        },
+
+        "strict": true,
+        "skipLibCheck": true,
+        "esModuleInterop": true,
+        "forceConsistentCasingInFileNames": true,
+        "exactOptionalPropertyTypes": true
+    },
+    "include": [
+        "src/**/*"
+    ]
+}
