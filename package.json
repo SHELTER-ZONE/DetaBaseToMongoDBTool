@@ -1,7 +1,7 @@
 {
   "scripts": {
-    "fetch-deta-base": "vite-node src/fetch-deta-base.ts",
-    "save-mongodb": "vite-node src/save-mongodb.ts"
+    "fetch-deta-base": "tsx src/fetch-deta-base.ts",
+    "save-mongodb": "tsx src/save-mongodb.ts"
   },
   "devDependencies": {
     "@shelter-zone/sz-api-types": "^2.0.4",
@@ -13,6 +13,6 @@
     "deta": "^1.1.0",
     "dotenv": "^16.0.3",
     "mongoose": "^6.9.2",
-    "vite-node": "^0.29.2"
+    "tsx": "^3.12.3"
   }
 }
