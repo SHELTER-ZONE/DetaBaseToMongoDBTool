@@ -26,7 +26,7 @@ const saveSZUser = async() => {
   }
   await Promise.allSettled([ User.insertMany(dataPut), ...queueUpdate ])
 
-  console.log(`[${mongoose.connection.name}.user] Put ${dataPut.length}, Update ${detaSZUsers.length - dataPut.length} items in ${Date.now() - timeStart}ms`)
+  console.log(`[${mongoose.connection.name}.user] Put ${dataPut.length}, Update ${queueUpdate.length} items in ${Date.now() - timeStart}ms`)
 }
 
 const saveSZDailyCheck = async() => {
@@ -46,7 +46,7 @@ const saveSZDailyCheck = async() => {
   }
   await Promise.allSettled([ DailyCheck.insertMany(dataPut), ...queueUpdate ])
 
-  console.log(`[${mongoose.connection.name}.dailyCheck] Put ${dataPut.length}, Update ${detaSZDailyCheck.length - dataPut.length} items in ${Date.now() - timeStart}ms`)
+  console.log(`[${mongoose.connection.name}.dailyCheck] Put ${dataPut.length}, Update ${queueUpdate.length} items in ${Date.now() - timeStart}ms`)
 }
 
 const saveSZUserProfile = async() => {
@@ -67,7 +67,7 @@ const saveSZUserProfile = async() => {
   }
   await Promise.allSettled([ UserProfile.insertMany(dataPut), ...queueUpdate ])
 
-  console.log(`[${mongoose.connection.name}.userProfile] Put ${dataPut.length}, Update ${detaSZUserProfiles.length - dataPut.length} items in ${Date.now() - timeStart}ms`)
+  console.log(`[${mongoose.connection.name}.userProfile] Put ${dataPut.length}, Update ${queueUpdate.length} items in ${Date.now() - timeStart}ms`)
 }
 
 const updateSZUser = async() => {
