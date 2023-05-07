@@ -2,26 +2,32 @@ import { readFile } from 'fs/promises'
 import 'dotenv/config'
 import mongoose from 'mongoose'
 import { User, UserProfile, DailyCheck } from '@shelter-zone/sz-data-models'
+
+// Deta types
 import type { SZUser as DetaSZUser } from '@shelter-zone/sz-api-types/SZUser'
 import type { SZUserProfile as DetaSZUserProfile } from '@shelter-zone/sz-api-types/SZUserProfile'
 import type { SZDailyCheck as DetaSZDailyCheck } from '@shelter-zone/sz-api-types/SZDailyCheck'
-import type { SZUser } from '@shelter-zone/sz-api-types/v2/SZUser'
-import type { SZUserProfile } from '@shelter-zone/sz-api-types/v2/SZUserProfile'
-import type { SZDailyCheckRecord } from '@shelter-zone/sz-api-types/v2/SZDailyCheck'
 
-const saveSZUser = async() => {
+// Mongodb types
+import type { SZUser, SZUserProfile, SZDailyCheckRecord } from '@shelter-zone/sz-api-types/v2'
+
+const saveUser = async() => {
   const timeStart = Date.now()
+
+  const [ detaUserRecords, mdbUserRecord ] = await Promise.all([
+    readFile('data/user.json', 'utf8').then((data) => JSON.parse(data) as DetaSZUser[]),
+    User.find()
+  ])
+
   const dataPut: Omit<SZUser, 'createAt' | 'id' | 'updateAt'>[] = []
   const queueUpdate = []
-
-  const [ detaSZUsers, mongodbSZUsers ] = await Promise.all([ readFile('data/user.json', 'utf8'), User.find() ])
-
-  for (const user of JSON.parse(detaSZUsers) as DetaSZUser[]) {
-    if (mongodbSZUsers.find((mdbUser) => mdbUser.userId === user.id)) {
-      queueUpdate.push(User.updateOne({ userId: user.id }, { type: user.type }))
+  for (const detaUser of detaUserRecords) {
+    const mdbUser = mdbUserRecord.find((mdbUser) => mdbUser.userId === detaUser.id)
+    if (mdbUser) {
+      queueUpdate.push(User.updateOne({ userId: detaUser.id }, { type: detaUser.type }))
     }
     else {
-      dataPut.push({ userId: user.id, type: user.type })
+      dataPut.push({ userId: detaUser.id, type: detaUser.type })
     }
   }
   await Promise.allSettled([ User.insertMany(dataPut), ...queueUpdate ])
@@ -29,19 +35,23 @@ const saveSZUser = async() => {
   console.log(`[${mongoose.connection.name}.user] Put ${dataPut.length}, Update ${queueUpdate.length} items in ${Date.now() - timeStart}ms`)
 }
 
-const saveSZDailyCheck = async() => {
+const saveDailyCheck = async() => {
   const timeStart = Date.now()
+
+  const [ detaDailyCheckRecords, mdbDailyCheckRecords ] = await Promise.all([
+    readFile('data/dailyCheck.json', 'utf8').then((data) => JSON.parse(data) as DetaSZDailyCheck[]),
+    DailyCheck.find()
+  ])
+
   const dataPut: (Omit<SZDailyCheckRecord, 'id' | 'lastRecord'> & { lastRecord: string })[] = []
   const queueUpdate = []
-
-  const [ detaSZDailyCheck, mongodbSZDailyCheck ] = await Promise.all([ readFile('data/dailyCheck.json', 'utf8'), DailyCheck.find() ])
-
-  for (const dailyCheck of JSON.parse(detaSZDailyCheck) as DetaSZDailyCheck[]) {
-    if (mongodbSZDailyCheck.find((mdbDailyCheck) => mdbDailyCheck.userId === dailyCheck.memberID)) {
-      queueUpdate.push(DailyCheck.updateOne({ userId: dailyCheck.memberID }, { lastRecord: dailyCheck.lastCheck }))
+  for (const detaDailyCheck of detaDailyCheckRecords) {
+    const mdbDailyCheck = mdbDailyCheckRecords.find((mdbDailyCheck) => mdbDailyCheck.userId === detaDailyCheck.memberID)
+    if (mdbDailyCheck) {
+      queueUpdate.push(DailyCheck.updateOne({ userId: detaDailyCheck.memberID }, { lastRecord: detaDailyCheck.lastCheck }))
     }
     else {
-      dataPut.push({ userId: dailyCheck.memberID, lastRecord: dailyCheck.lastCheck })
+      dataPut.push({ userId: detaDailyCheck.memberID, lastRecord: detaDailyCheck.lastCheck })
     }
   }
   await Promise.allSettled([ DailyCheck.insertMany(dataPut), ...queueUpdate ])
@@ -49,20 +59,25 @@ const saveSZDailyCheck = async() => {
   console.log(`[${mongoose.connection.name}.dailyCheck] Put ${dataPut.length}, Update ${queueUpdate.length} items in ${Date.now() - timeStart}ms`)
 }
 
-const saveSZUserProfile = async() => {
+const saveUserProfile = async() => {
   const timeStart = Date.now()
+
+  const [ detaUserProfileRecords, mdbUserRecords, mdbUserProfileRecords ] = await Promise.all([
+    readFile('data/userProfile.json', 'utf8').then((data) => JSON.parse(data) as DetaSZUserProfile[]),
+    User.find(),
+    UserProfile.find()
+  ])
+
   const dataPut: (Omit<SZUserProfile, 'createAt' | 'id' | 'updateAt' | 'user'> & { user: QueryType<ReturnType<typeof User.findOne>> | null })[] = []
   const queueUpdate = []
+  for (const detaUserProfile of detaUserProfileRecords) {
+    const mdbSZUser = mdbUserRecords.find((mdbUser) => mdbUser.userId === detaUserProfile.userId)
 
-  const [ detaSZUserProfiles, mongodbSZUsers, mongodbSZUserProfiles ] = await Promise.all([ readFile('data/userProfile.json', 'utf8'), User.find(), UserProfile.find() ])
-
-  for (const userProfile of JSON.parse(detaSZUserProfiles) as DetaSZUserProfile[]) {
-    const mdbSZUser = mongodbSZUsers.find((mdbUser) => mdbUser.userId === userProfile.userId)
-    if (mongodbSZUserProfiles.find((mdbUserProfile) => mdbUserProfile.user.toString() === mdbSZUser?.id)) {
-      queueUpdate.push(UserProfile.updateOne({ user: mdbSZUser?.id }, { name: userProfile.name, rep: userProfile.rep }))
+    if (mdbUserProfileRecords.find((mdbUserProfile) => mdbUserProfile.user.toString() === mdbSZUser?.id)) {
+      queueUpdate.push(UserProfile.updateOne({ user: mdbSZUser }, { name: detaUserProfile.name, rep: detaUserProfile.rep }))
     }
     else {
-      dataPut.push({ user: null, name: userProfile.name, rep: userProfile.rep })
+      dataPut.push({ user: mdbSZUser ?? null, name: detaUserProfile.name, rep: detaUserProfile.rep })
     }
   }
   await Promise.allSettled([ UserProfile.insertMany(dataPut), ...queueUpdate ])
@@ -70,17 +85,20 @@ const saveSZUserProfile = async() => {
   console.log(`[${mongoose.connection.name}.userProfile] Put ${dataPut.length}, Update ${queueUpdate.length} items in ${Date.now() - timeStart}ms`)
 }
 
-const updateSZUser = async() => {
+const updateUser = async() => {
   const timeStart = Date.now()
+
+  const [ mdbUserRecords, mdbUserProfileRecords ] = await Promise.all([
+    User.find(),
+    UserProfile.find()
+  ])
+
   const queueUpdate = []
-
-  const [ mongodbSZUsers, mongodbSZUserProfiles ] = await Promise.all([ User.find(), UserProfile.find() ])
-
-  for (const userProfile of mongodbSZUserProfiles) {
-    const mdbSZUser = mongodbSZUsers.find((mdbUser) => mdbUser.id === userProfile.user.toString())
+  for (const mdbUserProfile of mdbUserProfileRecords) {
+    const mdbSZUser = mdbUserRecords.find((mdbUser) => mdbUser.id === mdbUserProfile.user.toString())
     if (!mdbSZUser) continue
 
-    mdbSZUser.profiles = { userProfile: userProfile.id }
+    mdbSZUser.profiles = { userProfile: mdbUserProfile.id }
     queueUpdate.push(mdbSZUser.save())
   }
 
@@ -89,24 +107,22 @@ const updateSZUser = async() => {
   console.log(`[${mongoose.connection.name}.user] Update ${queueUpdate.length} items reference in ${Date.now() - timeStart}ms`)
 }
 
-const putMongoDB = async() => {
-  // Check if mongoDB URI is set
+const saveMongoDB = async() => {
   if (!process.env.MONGODB_URI) {
-    console.log('No mongoDB URI found')
+    console.log('No MongoDB URI found')
     return
   }
 
-  // Connect to mongoDB
   await mongoose.connect(process.env.MONGODB_URI)
 
   const timeStart = Date.now()
   await Promise.allSettled([
-    saveSZUser(),
-    saveSZDailyCheck()
+    saveUser(),
+    saveDailyCheck()
   ])
-  await saveSZUserProfile()
-  await updateSZUser()
+  await saveUserProfile()
+  await updateUser()
   console.log(`All data save complete in ${Date.now() - timeStart}ms`)
 }
 
-putMongoDB().then(() => mongoose.disconnect())
+saveMongoDB().then(() => mongoose.disconnect())
