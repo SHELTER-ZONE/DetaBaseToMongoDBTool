@@ -6,7 +6,6 @@ import { User, UserProfile, DailyCheck } from '@shelter-zone/sz-data-models'
 // Deta types
 import type { SZUser as DetaSZUser } from '@shelter-zone/sz-api-types/SZUser'
 import type { SZUserProfile as DetaSZUserProfile } from '@shelter-zone/sz-api-types/SZUserProfile'
-import type { SZDailyCheck as DetaSZDailyCheck } from '@shelter-zone/sz-api-types/SZDailyCheck'
 
 // Mongodb types
 import type { SZUser, SZUserProfile, SZDailyCheckRecord } from '@shelter-zone/sz-api-types/v2'
@@ -39,7 +38,7 @@ const saveDailyCheck = async() => {
   const timeStart = Date.now()
 
   const [ detaDailyCheckRecords, mdbDailyCheckRecords ] = await Promise.all([
-    readFile('data/dailyCheck.json', 'utf8').then((data) => JSON.parse(data) as DetaSZDailyCheck[]),
+    readFile('data/dailyCheck.json', 'utf8').then((data) => (JSON.parse(data) as DetaSZDailyCheckGuild)[1].members),
     DailyCheck.find()
   ])
 
